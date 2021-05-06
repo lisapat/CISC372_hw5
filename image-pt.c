@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <time.h>
 #include <string.h>
-#include "image.h"
+#include "image-pt.h"
 #include "pthread.h"
 
 
@@ -11,6 +11,12 @@
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
+
+int thread_count;
+Image* srcImage;
+Image* destImage;
+enum KernelTypes type;
+
 
 //An array of kernel matrices to be used for image convolution.  
 //The indexes of these match the enumeration from the header file. ie. algorithms[BLUR] returns the kernel corresponding to a box blur.
@@ -58,13 +64,19 @@ uint8_t getPixelValue(Image* srcImage,int x,int y,int bit,Matrix algorithm){
 //            destImage: A pointer to a  pre-allocated (including space for the pixel array) structure to receive the convoluted image.  It should be the same size as srcImage
 //            algorithm: The kernel matrix to use for the convolution
 //Returns: Nothing
-void convolute(Image* srcImage,Image* destImage,Matrix algorithm){
+void* convolute(void* rank){
     int row,pix,bit,span;
-    span=srcImage->bpp*srcImage->bpp;
+  
+    //span=srcImage->bpp*srcImage->bpp;
+
+    int n = (srcImage->width)/thread_count;
+    int start = n*(long)rank;
+    int end = start + n;
+
     for (row=0;row<srcImage->height;row++){
-        for (pix=0;pix<srcImage->width;pix++){
+        for (pix=start;pix<end;pix++){
             for (bit=0;bit<srcImage->bpp;bit++){
-                destImage->data[Index(pix,row,srcImage->width,bit,srcImage->bpp)]=getPixelValue(srcImage,pix,row,bit,algorithm);
+                destImage->data[Index(pix,row,srcImage->width,bit,srcImage->bpp)]=getPixelValue(srcImage,pix,row,bit,algorithms[type]);
             }
         }
     }
@@ -93,7 +105,6 @@ enum KernelTypes GetKernelType(char* type){
 //argv is expected to take 2 arguments.  First is the source file name (can be jpg, png, bmp, tga).  Second is the lower case name of the algorithm.
 int main(int argc,char** argv){
     double t1,t2;
-    //t1=time(NULL);
 
     stbi_set_flip_vertically_on_load(0); 
     if (argc!=3) return Usage();
@@ -101,30 +112,44 @@ int main(int argc,char** argv){
     if (!strcmp(argv[1],"pic4.jpg")&&!strcmp(argv[2],"gauss")){
         printf("You have applied a gaussian filter to Gauss which has caused a tear in the time-space continum.\n");
     }
-    enum KernelTypes type=GetKernelType(argv[2]);
+    type=GetKernelType(argv[2]);
 
-    Image srcImage,destImage,bwImage;   
-    srcImage.data=stbi_load(fileName,&srcImage.width,&srcImage.height,&srcImage.bpp,0);
-    if (!srcImage.data){
+//    Image srcImage,destImage,bwImage;   
+    srcImage = malloc(sizeof(Image));
+    destImage = malloc(sizeof(Image));
+
+    srcImage->data=stbi_load(fileName,&srcImage->width,&srcImage->height,&srcImage->bpp,0);
+    if (!srcImage->data){
         printf("Error loading file %s.\n",fileName);
         return -1;
     }
-    destImage.bpp=srcImage.bpp;
-    destImage.height=srcImage.height;
-    destImage.width=srcImage.width;
-    destImage.data=malloc(sizeof(uint8_t)*destImage.width*destImage.bpp*destImage.height);
+    destImage->bpp=srcImage->bpp;
+    destImage->height=srcImage->height;
+    destImage->width=srcImage->width;
+    destImage->data=malloc(sizeof(uint8_t)*destImage->width*destImage->bpp*destImage->height);
    
+    long td;
+    thread_count = 100;
+    pthread_t* tds = (pthread_t*) malloc(thread_count*sizeof(pthread_t));
+    
     t1 = time(NULL);
-    convolute(&srcImage,&destImage,algorithms[type]);
-    t2 = time(NULL);
     
-    printf("Took %lf seconds\n",t2-t1);
+    for (td = 0; td < thread_count; td++) {
+     pthread_create(&tds[td], NULL, &convolute, (void*)td);
+    }
 
-    stbi_write_png("output.png",destImage.width,destImage.height,destImage.bpp,destImage.data,destImage.bpp*destImage.width);
-    stbi_image_free(srcImage.data);
+   for (td = 0; td < thread_count; td++) {
+	    pthread_join(tds[td], NULL);
+    }
+     t2 = time(NULL);
+
+     free(tds);
     
-    free(destImage.data);
-   // t2=time(NULL);
-   // printf("Took %ld seconds\n",t2-t1);
+    printf("Took %ld seconds\n",t2-t1);
+
+    stbi_write_png("output.png",destImage->width,destImage->height,destImage->bpp,destImage->data,destImage->bpp*destImage->width);
+    stbi_image_free(srcImage->data);
+    
+   free(destImage->data);
    return 0;
 }
