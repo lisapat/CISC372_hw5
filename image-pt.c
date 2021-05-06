@@ -133,7 +133,6 @@ int main(int argc,char** argv){
     pthread_t* tds = (pthread_t*) malloc(thread_count*sizeof(pthread_t));
     
     t1 = time(NULL);
-    
     for (td = 0; td < thread_count; td++) {
      pthread_create(&tds[td], NULL, &convolute, (void*)td);
     }
@@ -142,10 +141,9 @@ int main(int argc,char** argv){
 	    pthread_join(tds[td], NULL);
     }
      t2 = time(NULL);
-
-     free(tds);
-    
     printf("Took %ld seconds\n",t2-t1);
+
+    free(tds);
 
     stbi_write_png("output.png",destImage->width,destImage->height,destImage->bpp,destImage->data,destImage->bpp*destImage->width);
     stbi_image_free(srcImage->data);
