@@ -77,9 +77,8 @@ void* convolute(void* rank){
     for (row=0;row<srcImage->height;row++){
         for (pix=0;pix<srcImage->width;pix++){
             for (bit=0;bit<srcImage->bpp;bit++){
-
-                destImage->data[Index(pix,row,srcImage->width,bit,srcImage->bpp)] =
-			getPixelValue(srcImage,pix,row,bit,algorithms[type]);
+              // destImage->data[Index(pix,row,srcImage->width,bit,srcImage->bpp)] =
+		//	getPixelValue(srcImage,pix,row,bit,algorithms[type]);
             }
         }
     }
@@ -146,7 +145,6 @@ int main(int argc,char** argv){
     destImage->height=srcImage->height;
     destImage->width=srcImage->width;
     destImage->data=malloc(sizeof(uint8_t)*destImage->width*destImage->bpp*destImage->height);
-
 
     t1 = time(NULL);
     for (td = 0; td < thread_count; td++) {
