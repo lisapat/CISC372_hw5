@@ -37,7 +37,7 @@ Matrix algorithms[]={
 //          bit: The color channel being manipulated
 //          algorithm: The 3x3 kernel matrix to use for the convolution
 //Returns: The new value for this x,y pixel and bit channel
-uint8_t getPixelValue(Image* srcImage,int x,int y,int bit,Matrix algorithm){
+uint8_t getPixelValue(Image *srcImage,int x,int y,int bit,Matrix algorithm){
     int px,mx,py,my,i,span;
     span=srcImage->width*srcImage->bpp;
     // for the edge pixes, just reuse the edge pixel
@@ -72,12 +72,14 @@ void* convolute(void* rank){
     int n = (srcImage->width)/thread_count;
     int start = n*(long)rank;
     int end = start + n;
-    
+  
 // optimize the row and pix (height and width)
     for (row=0;row<srcImage->height;row++){
         for (pix=0;pix<srcImage->width;pix++){
             for (bit=0;bit<srcImage->bpp;bit++){
-      //          destImage->data[Index(pix,row,srcImage->width,bit,srcImage->bpp)]=getPixelValue(srcImage,pix,row,bit,algorithms[type]);
+
+                destImage->data[Index(pix,row,srcImage->width,bit,srcImage->bpp)] =
+			getPixelValue(srcImage,pix,row,bit,algorithms[type]);
             }
         }
     }
@@ -114,22 +116,22 @@ int main(int argc,char** argv){
         printf("You have applied a gaussian filter to Gauss which has caused a tear in the time-space continum.\n");
     }
    
-    type=GetKernelType(argv[2]);
+    type = GetKernelType(argv[2]);
 
 //    Image srcImage,destImage,bwImage;   
     srcImage = (Image *) malloc(sizeof(Image));
-    destImage = (Image *) malloc(sizeof(Image));
-
     srcImage->data=stbi_load(fileName,&srcImage->width,&srcImage->height,&srcImage->bpp,0);
     if (!srcImage->data){
         printf("Error loading file %s.\n",fileName);
         return -1;
     }
+
+    /*destImage = (Image *) malloc(sizeof(Image));
     destImage->bpp=srcImage->bpp;
     destImage->height=srcImage->height;
     destImage->width=srcImage->width;
     destImage->data=malloc(sizeof(uint8_t)*destImage->width*destImage->bpp*destImage->height);
-   
+   */
     long td;
 
     // split the number of tasks among threads
@@ -138,7 +140,14 @@ int main(int argc,char** argv){
     //printf("print the srcImage->height %d\n Print srcImage->width %d\n", srcImage->height, srcImage->width);
 
     pthread_t* tds = (pthread_t*) malloc(thread_count*sizeof(pthread_t));
-    
+
+    destImage = (Image *) malloc(sizeof(Image));
+    destImage->bpp=srcImage->bpp;
+    destImage->height=srcImage->height;
+    destImage->width=srcImage->width;
+    destImage->data=malloc(sizeof(uint8_t)*destImage->width*destImage->bpp*destImage->height);
+
+
     t1 = time(NULL);
     for (td = 0; td < thread_count; td++) {
      pthread_create(&tds[td], NULL, &convolute, (void*)&td);
