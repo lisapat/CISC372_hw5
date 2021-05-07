@@ -16,6 +16,8 @@ Image* srcImage;
 Image* destImage;
 enum KernelTypes type;
 long totalPix;
+int px_per_td;
+int py_per_td;
 
 //An array of kernel matrices to be used for image convolution.  
 //The indexes of these match the enumeration from the header file. ie. algorithms[BLUR] returns the kernel corresponding to a box blur.
@@ -68,11 +70,11 @@ void* convolute(void* rank){
   
     //span=srcImage->bpp*srcImage->bpp;
 
-    int px_per_td = (srcImage->width)/thread_count;
-    int start_row = px_per_td*(long)rank;
-    int end_row = start_row + px_per_td + 1;
+   // px_per_td = (srcImage->width)/thread_count;
+    int start_row =(px_per_td*(long)rank)/srcImage->width;
+    int end_row = (start_row + px_per_td + 1)/srcImage->width;
 
-    int py_per_td = (srcImage->height)/thread_count;
+   // py_per_td = (srcImage->height)/thread_count;
     int start_col = py_per_td*(long)rank;
     int end_col = start_col + py_per_td + 1;
 
@@ -131,7 +133,12 @@ int main(int argc,char** argv){
 
     // split the number of tasks among threads
     totalPix = srcImage->height*srcImage->width;
-    thread_count = (long) totalPix/3000;
+    thread_count = (long) totalPix/400; // a max number of threads that can be created 
+
+    printf("%d\n", thread_count);
+
+    px_per_td = (srcImage->width)/thread_count;
+    py_per_td = (srcImage->height)/thread_count;
 
     threads = (pthread_t*) malloc(thread_count * sizeof(pthread_t));
 
@@ -145,7 +152,7 @@ int main(int argc,char** argv){
     
     for (td = 0; td < thread_count; td++) {
      if (pthread_create(&threads[td], NULL, &convolute, (void*)&td)) {
-     printf("Error");
+     perror("Thread Creation Error");
      }
     }
 
