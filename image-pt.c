@@ -12,11 +12,11 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
-int thread_count;
+long thread_count;
 Image* srcImage;
 Image* destImage;
 enum KernelTypes type;
-
+long totalPix;
 
 //An array of kernel matrices to be used for image convolution.  
 //The indexes of these match the enumeration from the header file. ie. algorithms[BLUR] returns the kernel corresponding to a box blur.
@@ -72,9 +72,10 @@ void* convolute(void* rank){
     int n = (srcImage->width)/thread_count;
     int start = n*(long)rank;
     int end = start + n;
-
+    
+// optimize the row and pix (height and width)
     for (row=0;row<srcImage->height;row++){
-        for (pix=start;pix<end;pix++){
+        for (pix=0;pix<srcImage->width;pix++){
             for (bit=0;bit<srcImage->bpp;bit++){
                 destImage->data[Index(pix,row,srcImage->width,bit,srcImage->bpp)]=getPixelValue(srcImage,pix,row,bit,algorithms[type]);
             }
@@ -115,8 +116,8 @@ int main(int argc,char** argv){
     type=GetKernelType(argv[2]);
 
 //    Image srcImage,destImage,bwImage;   
-    srcImage = malloc(sizeof(Image));
-    destImage = malloc(sizeof(Image));
+    srcImage = (Image *) malloc(sizeof(Image));
+    destImage = (Image *) malloc(sizeof(Image));
 
     srcImage->data=stbi_load(fileName,&srcImage->width,&srcImage->height,&srcImage->bpp,0);
     if (!srcImage->data){
@@ -129,18 +130,24 @@ int main(int argc,char** argv){
     destImage->data=malloc(sizeof(uint8_t)*destImage->width*destImage->bpp*destImage->height);
    
     long td;
-    thread_count = 100;
+
+    // split the number of tasks among threads
+    totalPix = srcImage->height*srcImage->width;
+    thread_count = 1 /*totalPix/300*/;
+ //   printf("print the srcImage->height %d", srcImage->height);
+
     pthread_t* tds = (pthread_t*) malloc(thread_count*sizeof(pthread_t));
     
     t1 = time(NULL);
     for (td = 0; td < thread_count; td++) {
-     pthread_create(&tds[td], NULL, &convolute, (void*)td);
+     pthread_create(&tds[td], NULL, &convolute, (void*)&td);
     }
 
    for (td = 0; td < thread_count; td++) {
 	    pthread_join(tds[td], NULL);
     }
      t2 = time(NULL);
+
     printf("Took %ld seconds\n",t2-t1);
 
     free(tds);
