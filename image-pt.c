@@ -113,6 +113,7 @@ int main(int argc,char** argv){
     if (!strcmp(argv[1],"pic4.jpg")&&!strcmp(argv[2],"gauss")){
         printf("You have applied a gaussian filter to Gauss which has caused a tear in the time-space continum.\n");
     }
+   
     type=GetKernelType(argv[2]);
 
 //    Image srcImage,destImage,bwImage;   
@@ -134,7 +135,7 @@ int main(int argc,char** argv){
     // split the number of tasks among threads
     totalPix = srcImage->height*srcImage->width;
     thread_count = 1 /*totalPix/300*/;
- //   printf("print the srcImage->height %d", srcImage->height);
+    //printf("print the srcImage->height %d\n Print srcImage->width %d\n", srcImage->height, srcImage->width);
 
     pthread_t* tds = (pthread_t*) malloc(thread_count*sizeof(pthread_t));
     
@@ -150,11 +151,13 @@ int main(int argc,char** argv){
 
     printf("Took %ld seconds\n",t2-t1);
 
-    free(tds);
-
-    stbi_write_png("output.png",destImage->width,destImage->height,destImage->bpp,destImage->data,destImage->bpp*destImage->width);
-    stbi_image_free(srcImage->data);
-    
+    stbi_write_png("output.png",destImage->width,destImage->height,
+		    destImage->bpp,destImage->data,destImage->bpp*destImage->width);
+   
+   stbi_image_free(srcImage->data); 
    free(destImage->data);
+   
+   free(tds);
+   
    return 0;
 }
