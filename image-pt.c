@@ -68,19 +68,23 @@ void* convolute(void* rank){
   
     //span=srcImage->bpp*srcImage->bpp;
 
-    int n = (srcImage->width)/thread_count;
-    int start = n*(long)rank;
-    int end = start + n;
-  
+    int px_per_td = (srcImage->width)/thread_count;
+    int start_row = px_per_td*(long)rank;
+    int end_row = start_row + px_per_td + 1;
+
+    int py_per_td = (srcImage->height)/thread_count;
+    int start_col = py_per_td*(long)rank;
+    int end_col = start_col + py_per_td + 1;
+
 // optimize the row and pix (height and width)
-    for (row=0;row<srcImage->height;row++){
-        for (pix=0;pix<srcImage->width;pix++){
+    for (row=start_row;row<end_row;row++){
+        for (pix=start_col;pix<end_col;pix++){
             for (bit=0;bit<srcImage->bpp;bit++){
                destImage->data[Index(pix,row,srcImage->width,bit,srcImage->bpp)] =
 			getPixelValue(srcImage,pix,row,bit,algorithms[type]);
             }
         }
-    }
+    } 
 }
 
 //Usage: Prints usage information for the program
@@ -106,7 +110,8 @@ enum KernelTypes GetKernelType(char* type){
 //argv is expected to take 2 arguments.  First is the source file name (can be jpg, png, bmp, tga).  Second is the lower case name of the algorithm.
 int main(int argc,char** argv){
     double t1,t2;
-
+    pthread_t *threads;
+    
     stbi_set_flip_vertically_on_load(0); 
     if (argc!=3) return Usage();
     char* fileName=argv[1];
@@ -124,14 +129,11 @@ int main(int argc,char** argv){
         return -1;
     }
 
-    long td;
-
     // split the number of tasks among threads
     totalPix = srcImage->height*srcImage->width;
-    thread_count = 1 /*totalPix/300*/;
-    //printf("print the srcImage->height %d\n Print srcImage->width %d\n", srcImage->height, srcImage->width);
+    thread_count = (long) totalPix/3000;
 
-    pthread_t* tds = (pthread_t*) malloc(thread_count*sizeof(pthread_t));
+    threads = (pthread_t*) malloc(thread_count * sizeof(pthread_t));
 
     destImage = (Image *) malloc(sizeof(Image));
     destImage->bpp=srcImage->bpp;
@@ -139,15 +141,21 @@ int main(int argc,char** argv){
     destImage->width=srcImage->width;
     destImage->data=malloc(sizeof(uint8_t)*destImage->width*destImage->bpp*destImage->height);
 
-    t1 = time(NULL);
+    long td;
+    
     for (td = 0; td < thread_count; td++) {
-     pthread_create(&tds[td], NULL, &convolute, (void*)&td);
+     if (pthread_create(&threads[td], NULL, &convolute, (void*)&td)) {
+     printf("Error");
+     }
     }
 
-   for (td = 0; td < thread_count; td++) {
-	    pthread_join(tds[td], NULL);
+    t1 = time(NULL);
+
+    for (td = 0; td < thread_count; td++) {
+	  pthread_join(threads[td], NULL);
     }
-     t2 = time(NULL);
+
+    t2 = time(NULL);
 
     printf("Took %ld seconds\n",t2-t1);
 
@@ -157,7 +165,7 @@ int main(int argc,char** argv){
    stbi_image_free(srcImage->data); 
    free(destImage->data);
    
-   free(tds);
+   free(threads);
    
    return 0;
 }
