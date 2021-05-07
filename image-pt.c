@@ -5,7 +5,6 @@
 #include "image-pt.h"
 #include "pthread.h"
 
-
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
@@ -74,14 +73,14 @@ void* convolute(void* rank){
     int end = start + n;
   
 // optimize the row and pix (height and width)
-    for (row=0;row<srcImage->height;row++){
+    /*for (row=0;row<srcImage->height;row++){
         for (pix=0;pix<srcImage->width;pix++){
             for (bit=0;bit<srcImage->bpp;bit++){
               // destImage->data[Index(pix,row,srcImage->width,bit,srcImage->bpp)] =
 		//	getPixelValue(srcImage,pix,row,bit,algorithms[type]);
             }
         }
-    }
+    }*/
 }
 
 //Usage: Prints usage information for the program
@@ -125,12 +124,6 @@ int main(int argc,char** argv){
         return -1;
     }
 
-    /*destImage = (Image *) malloc(sizeof(Image));
-    destImage->bpp=srcImage->bpp;
-    destImage->height=srcImage->height;
-    destImage->width=srcImage->width;
-    destImage->data=malloc(sizeof(uint8_t)*destImage->width*destImage->bpp*destImage->height);
-   */
     long td;
 
     // split the number of tasks among threads
