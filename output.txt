@@ -1,0 +1,15 @@
+Script started on 2021-05-08 10:45:17-04:00
+]0;lisapat@br013:~/CISC372/hw5-cisc372[lisapat@r001 hw5-cisc372]$ make image-mp
+gcc -g image-MP.c -o image-mp -lm -fopenmp
+]0;lisapat@br013:~/CISC372/hw5-cisc372[lisapat@r001 hw5-cisc372]$ ./image pic1.jpg edge
+bash: ./image: No such file or directory
+]0;lisapat@br013:~/CISC372/hw5-cisc372[lisapat@r001 hw5-cisc372]$ ./image pic1.jpg edge[1@-[1@m[1@p[1P[1P[1@m[1@p
+Took 0.511449 seconds
+]0;lisapat@br013:~/CISC372/hw5-cisc372[lisapat@r001 hw5-cisc372]$ male[K[Kke image-p[t[K[Kt
+gcc -g image-pt.c -o image-pt -lm -lpthread
+]0;lisapat@br013:~/CISC372/hw5-cisc372[lisapat@r001 hw5-cisc372]$ ./image-pt pic1.jpg edge
+Took 0.000000 seconds
+]0;lisapat@br013:~/CISC372/hw5-cisc372[lisapat@r001 hw5-cisc372]$ exit
+exit
+
+Script done on 2021-05-08 10:46:27-04:00
