@@ -112,7 +112,7 @@ enum KernelTypes GetKernelType(char* type){
 //main:
 //argv is expected to take 2 arguments.  First is the source file name (can be jpg, png, bmp, tga).  Second is the lower case name of the algorithm.
 int main(int argc,char** argv){
-    double t1,t2;
+    long t1,t2;
     pthread_t *threads;
     
     stbi_set_flip_vertically_on_load(0); 
@@ -155,15 +155,16 @@ int main(int argc,char** argv){
      }
     }
 
-    t1 = time(NULL);
+   t1 = time(NULL);
 
     for (td = 0; td < thread_count; td++) {
 	  pthread_join(threads[td], NULL);
+	 // printf("%ld seconds at thread[%ld]\n", time(NULL), td);
     }
+   
+   t2 = time(NULL);
 
-    t2 = time(NULL);
-
-    printf("Took %ld seconds\n",t2-t1);
+    printf("Took %ld seconds\n", t2 - t1);
 
     stbi_write_png("output.png",destImage->width,destImage->height,
 		    destImage->bpp,destImage->data,destImage->bpp*destImage->width);
