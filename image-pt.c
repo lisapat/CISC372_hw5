@@ -16,8 +16,7 @@ Image* srcImage;
 Image* destImage;
 enum KernelTypes type;
 long totalPix;
-int px_per_td;
-int py_per_td;
+long pix_per_td;
 
 //An array of kernel matrices to be used for image convolution.  
 //The indexes of these match the enumeration from the header file. ie. algorithms[BLUR] returns the kernel corresponding to a box blur.
@@ -66,27 +65,29 @@ uint8_t getPixelValue(Image *srcImage,int x,int y,int bit,Matrix algorithm){
 //            algorithm: The kernel matrix to use for the convolution
 //Returns: Nothing
 void* convolute(void* rank){
-    int row,pix,bit,span;
+    int row,col,rowIndex,bit,span;
   
     //span=srcImage->bpp*srcImage->bpp;
 
-   // px_per_td = (srcImage->width)/thread_count;
-    int start_row =(px_per_td*(long)rank)/srcImage->width;
-    int end_row = (start_row + px_per_td + 1)/srcImage->width;
+    long start_col = (pix_per_td*(long)rank)/srcImage->width;
+    long end_col = (pix_per_td * ((long)rank + 1))/srcImage->width;
 
-   // py_per_td = (srcImage->height)/thread_count;
-    int start_col = py_per_td*(long)rank;
-    int end_col = start_col + py_per_td + 1;
+    long start_row = pix_per_td*(long)rank;
+    long end_row = start_row + pix_per_td;
 
 // optimize the row and pix (height and width)
-    for (row=start_row;row<end_row;row++){
-        for (pix=start_col;pix<end_col;pix++){
+    for (col = start_col; col <= end_col; col++){
+        for (row = start_row, rowIndex = row; row < end_row; row++, rowIndex++){
+		if (rowIndex >= srcImage->width) {
+			rowIndex %= srcImage->width;
+		}
             for (bit=0;bit<srcImage->bpp;bit++){
-               destImage->data[Index(pix,row,srcImage->width,bit,srcImage->bpp)] =
-			getPixelValue(srcImage,pix,row,bit,algorithms[type]);
+               destImage->data[Index(rowIndex,col,srcImage->width,bit,srcImage->bpp)] =
+			getPixelValue(srcImage,rowIndex,col,bit,algorithms[type]);
             }
         }
-    } 
+    }
+   return NULL; 
 }
 
 //Usage: Prints usage information for the program
@@ -131,15 +132,13 @@ int main(int argc,char** argv){
         return -1;
     }
 
+    pix_per_td = 400;
+
     // split the number of tasks among threads
     totalPix = srcImage->height*srcImage->width;
-    thread_count = (long) totalPix/400; // a max number of threads that can be created 
+    thread_count = (long) totalPix/pix_per_td; // a max number of threads that can be created 
 
-    printf("%d\n", thread_count);
-
-    px_per_td = (srcImage->width)/thread_count;
-    py_per_td = (srcImage->height)/thread_count;
-
+ //   printf("%d\n", thread_count);
     threads = (pthread_t*) malloc(thread_count * sizeof(pthread_t));
 
     destImage = (Image *) malloc(sizeof(Image));
@@ -151,7 +150,7 @@ int main(int argc,char** argv){
     long td;
     
     for (td = 0; td < thread_count; td++) {
-     if (pthread_create(&threads[td], NULL, &convolute, (void*)&td)) {
+     if (pthread_create(&threads[td], NULL, &convolute, (void*)td)) {
      perror("Thread Creation Error");
      }
     }
